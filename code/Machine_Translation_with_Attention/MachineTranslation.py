@@ -225,7 +225,7 @@ def timeSince(since, percent):
     return '%s (- %s)' % (asMinutes(s), asMinutes(s))
 
 # plot losses
-plt.switch_backend('agg')
+# plt.switch_backend('agg')
 def showPlot(points):
     plt.figure()
     fig, ax = plt.subplots()
@@ -257,6 +257,14 @@ def trainIters(encoder, decoder, n_iters, print_every=1000, plot_every=100, lear
             print_loss_avg = print_loss_total / print_every
             print_loss_total = 0
             print('%s (%d %d%%) %.4f'%(timeSince(start, iter/n_iters), iter, iter/n_iters*100, print_loss_avg))
+            torch.save({
+                'iter':iter,
+                'encoder':encoder.state_dict(),
+                'decoder':decoder.state_dict(),
+                'encoder_optim':encoder_optimizer.state_dict(),
+                'decoder_optim':decoder_optimizer.state_dict(),
+                'loss': loss,   
+            }, 'data/{}_{}.tar'.format(iter, 'checkpoint'))
         
         if iter % plot_every == 0:
             plot_loss_avg = plot_loss_total / plot_every
@@ -281,19 +289,21 @@ def evaluate(encoder, decoder, sentence, max_length=MAX_LENGTH):
         decoder_hidden = encoder_hidden
 
         decoded_words = []
-        decoder_attention = torch.zeros(max_length, max_length)
+        decoder_attentions = torch.zeros(max_length, max_length)
 
         for di in range(max_length):
             decoder_output, decoder_hidden, decoder_attention = decoder(decoder_input, decoder_hidden, encoder_outputs)
-            decoder_attention[di] = decoder_attention.data
+            decoder_attentions[di] = decoder_attention.data
             topv, topi = decoder_output.data.topk(1)
             if topi.item() == EOS_token:
                 decoded_words.append('<EOS>')
                 break
             else:
                 decoded_words.append(output_lang.index2word[topi.item()])
-        
-        return decoded_words, decoder_attention[:di + 1]
+            
+            decoder_input = topi.squeeze().detach()
+
+        return decoded_words, decoder_attentions[:di + 1]
 
 def evaluateRandomly(encoder, decoder, n=10):
     for i in range(n):
@@ -305,10 +315,55 @@ def evaluateRandomly(encoder, decoder, n=10):
         print('>', output_sentence)
         print('')
 
+
+
+# hidden_size = 256
+# encoder1 = EncoderRNN(input_lang.n_words, hidden_size).to(device)
+# attn_decoder1 = AttnDecoderRNN(hidden_size, output_lang.n_words, dropout_p=0.1).to(device)
+
+# trainIters(encoder1, attn_decoder1, 75000, print_every=5000)
+
+loadfilename = 'data/75000_checkpoint.tar'
+checkpoint = torch.load(loadfilename)
+encoder_sd = checkpoint['encoder']
+decoder_sd = checkpoint['decoder']
+# load trained data to eval
 hidden_size = 256
 encoder1 = EncoderRNN(input_lang.n_words, hidden_size).to(device)
+encoder1.load_state_dict(encoder_sd)
 attn_decoder1 = AttnDecoderRNN(hidden_size, output_lang.n_words, dropout_p=0.1).to(device)
-
-trainIters(encoder1, attn_decoder1, 75000, print_every=5000)
-
+attn_decoder1.load_state_dict(decoder_sd)
 evaluateRandomly(encoder1, attn_decoder1)
+
+def showAttention(input_sentence, output_words, attentions):
+    # Set up figure with colorbar
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    cax = ax.matshow(attentions.numpy(), cmap='bone')
+    fig.colorbar(cax)
+
+    # Set up axes
+    ax.set_xticklabels([''] + input_sentence.split(' ') +
+                       ['<EOS>'], rotation=90)
+    ax.set_yticklabels([''] + output_words)
+
+    # Show label at every tick
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
+    ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
+
+    plt.show()
+
+def evaluateAndShowAttention(input_sentence):
+    output_words, attentions = evaluate(
+        encoder1, attn_decoder1, input_sentence)
+    print('input =', input_sentence)
+    print('output =', ' '.join(output_words))
+    showAttention(input_sentence, output_words, attentions)
+
+evaluateAndShowAttention("elle a cinq ans de moins que moi .")
+
+evaluateAndShowAttention("elle est trop petit .")
+
+evaluateAndShowAttention("je ne crains pas de mourir .")
+
+evaluateAndShowAttention("c est un jeune directeur plein de talent .")
