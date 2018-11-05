@@ -18,6 +18,7 @@ EOS_token = 1
 cuda = torch.cuda.is_available()
 device = torch.device('cuda' if cuda else 'cpu')
 
+
 class Lang:
     def __init__(self, name):
         self.name = name
@@ -63,6 +64,7 @@ def readLangs(lang1, lang2, reverse=False):
         output_lang = Lang(lang2)
     
     return input_lang, output_lang, pairs
+
 
 MAX_LENGTH = 10
 eng_prefixes = (
@@ -163,6 +165,28 @@ def tensorFromPair(pair):
     target_tensor = tensorFromSentence(output_lang, pair[1])
     return (input_tensor, target_tensor)
 
+# helper functions
+def asMinutes(s):
+    m = math.floor(s / 60)
+    s -= m * 60
+    return '%dm %ds' %(m, s)
+
+def timeSince(since, percent):
+    now = time.time()
+    s = now - since
+    es = s / (percent)
+    rs = es - s
+    return '%s (- %s)' % (asMinutes(s), asMinutes(s))
+
+# plot losses
+# plt.switch_backend('agg')
+def showPlot(points):
+    plt.figure()
+    fig, ax = plt.subplots()
+    loc = ticker.MultipleLocator(base=0.2)
+    ax.yaxis.set_major_locator(loc)
+    plt.plot(points)
+
 
 teacher_forcing_ratio = 0.5 # a trick that helps convergence
 
@@ -210,29 +234,6 @@ def train(input_tensor, target_tensor, encoder, decoder, encoder_optimizer, deco
 
     return loss.item()/target_length
 
-
-# helper functions
-def asMinutes(s):
-    m = math.floor(s / 60)
-    s -= m * 60
-    return '%dm %ds' %(m, s)
-
-def timeSince(since, percent):
-    now = time.time()
-    s = now - since
-    es = s / (percent)
-    rs = es - s
-    return '%s (- %s)' % (asMinutes(s), asMinutes(s))
-
-# plot losses
-# plt.switch_backend('agg')
-def showPlot(points):
-    plt.figure()
-    fig, ax = plt.subplots()
-    loc = ticker.MultipleLocator(base=0.2)
-    ax.yaxis.set_major_locator(loc)
-    plt.plot(points)
-
 def trainIters(encoder, decoder, n_iters, print_every=1000, plot_every=100, learning_rate=0.01):
     start = time.time()
     plot_losses = []
@@ -257,6 +258,7 @@ def trainIters(encoder, decoder, n_iters, print_every=1000, plot_every=100, lear
             print_loss_avg = print_loss_total / print_every
             print_loss_total = 0
             print('%s (%d %d%%) %.4f'%(timeSince(start, iter/n_iters), iter, iter/n_iters*100, print_loss_avg))
+            # save the state dict 
             torch.save({
                 'iter':iter,
                 'encoder':encoder.state_dict(),
