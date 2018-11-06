@@ -10,3 +10,4 @@ See the [DSKSD's repo](https://github.com/DSKSD/DeepNLP-models-Pytorch) for more
  - torch 0.4.1
  - nltk 3.3
  - numpy 1.14.3
+ - gensim 3.6.0

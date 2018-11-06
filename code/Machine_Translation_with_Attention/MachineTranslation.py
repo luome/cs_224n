@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np 
 
+# this piece of code is borrowed from pytorch.org tutorial
 
 SOS_token = 0
 EOS_token = 1
