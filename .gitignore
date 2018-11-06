@@ -1,5 +1,5 @@
 .idea/
-code/Machine_Translation_with_Attention/data/*.tar 
+code/machine_translation_with_attention/data/*.tar 
 code/cnn_for_sentence_classification/data/GoogleNews-vectors-negative300.bin
 *__pycache__*
 code/cnn_for_sentence_classification/checkpoint
