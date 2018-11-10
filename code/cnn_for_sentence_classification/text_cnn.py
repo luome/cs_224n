@@ -28,4 +28,3 @@ class TextCNN(nn.Module):
         self.embedding.weight = nn.Parameter(torch.from_numpy(pretrained_word_vectors).float())
         if is_static:
             self.embedding.weight.requires_grad = False
-        

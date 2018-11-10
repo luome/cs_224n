@@ -45,7 +45,6 @@ def main():
     use_cuda = torch.cuda.is_available()
     device = torch.device('cuda' if use_cuda else 'cpu')
     train_data, test_data, word2index, target2index = data_helpers.preprocess()
-    print(target2index)
     pretrained_vectors = data_helpers.load_word_vector(word2index)
     model = TextCNN(len(word2index), 300, len(target2index))
     model.init_weights(pretrained_vectors)
